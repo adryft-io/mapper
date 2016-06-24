@@ -9,12 +9,11 @@ module.exports = (function() {
 
     index() {
 
+      // this.respond(this.params.query.query);this.paras
       Recipe.query()
         .where(this.params.query)
         .end((err, models) => {
-
           this.respond(err || models);
-
         });
 
     }

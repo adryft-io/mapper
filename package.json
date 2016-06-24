@@ -8,7 +8,10 @@
     "node": "6.0.0"
   },
   "dependencies": {
-    "nodal": "0.11.0"
+    "aws-sdk": "^2.4.1",
+    "nodal": "0.11.0",
+    "request-promise": "^3.0.0",
+    "sqs-consumer": "^3.1.3"
   },
   "devDependencies": {
     "chai": "~3.5.0",
@@ -17,7 +20,7 @@
   "scripts": {
     "test": "mocha ./test/runner.js",
     "start": "node cluster.js",
-    "worker": "node worker.js"
+    "worker": "node queueworker.js"
   },
   "private": true
 }
