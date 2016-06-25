@@ -9,6 +9,7 @@ var sqs = new AWS.SQS();
 // TODO: factor this out
 // should listen for triggers on the queue
 sqs.getQueueUrl({ QueueName: 'trigger' }, function(err, data) {
+  if (err) return console.log(err);
   var app = Consumer.create({
     queueUrl: data.QueueUrl,
     handleMessage: (data, done) => {
