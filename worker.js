@@ -25,7 +25,7 @@ sqs.getQueueUrl({ QueueName: 'trigger' }, function(err, data) {
       console.log('Recieved from trigger:', data);
 
       // create a promise request to the controller
-      rp('http://web:3000/v1/recipes/?' + q)
+      rp(process.env.RECIPES_SERVICE_URL + '/v1/recipes/?' + q)
       .then(function(data){
         var recipe = JSON.parse(data);
         var actionChannel = recipe.data[0].action_channel + '-channel';
