@@ -23,18 +23,20 @@ sqs.getQueueUrl({ QueueName: 'trigger' }, function(err, data) {
       rp(process.env.RECIPES_SERVICE_URL + '/v1/formulae/?' + q)
       .then(function(data) {
         var recipe = JSON.parse(data);
+        console.log('recipes_service_url is: ', process.env.RECIPES_SERVICE_URL)
+        console.log('recipe is: ', recipe);
         var queueName = recipe.data[0].reaction_channel + '-channel';
         console.log('Queue Being Sent To:', queueName);
         sqs.getQueueUrl({ QueueName: queueName }, function(err, data) {
-          
+
           // send message code goes here
           if (err) return console.log(err);
           var url = data.QueueUrl;
-          
+
           // Sending a message
           // The following example sends a message to the queue created in the previous example.
           var queue = new AWS.SQS({params: {QueueUrl: url}});
-          
+
           // parse the inner reaction_fields
           recipe.data[0].reaction_fields = JSON.parse(recipe.data[0].reaction_fields);
           var body = JSON.stringify(recipe.data[0]);
