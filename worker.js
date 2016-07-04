@@ -12,25 +12,20 @@ sqs.getQueueUrl({ QueueName: 'trigger' }, function(err, data) {
   if (err) return console.log(err);
   var app = Consumer.create({
     queueUrl: data.QueueUrl,
-    handleMessage: (data, done) => {
+    handleMessage: function(data, done) {
       body = JSON.parse(data.Body);
-      // set the trigger info into variables
-      var data = {}
-      data.userid = body.user_id;
-      data.triggerchannel = body.trigger_channel;
-      data.triggername = body.trigger_name;
-      
+
       //a query that will find the recipe given a trigger
-      var q = 'trigger_name='+ data.triggername +'&trigger_channel='+data.triggerchannel+ '&user_id='+ data.userid;
-      console.log('Recieved from trigger:', data);
+      var q = 'action_name=' + body.action_name + '&action_channel=' + body.action_channel + '&user_id=' + body.user_id;
+      console.log('Recieved from trigger:', body);
 
       // create a promise request to the controller
-      rp(process.env.RECIPES_SERVICE_URL + '/v1/recipes/?' + q)
-      .then(function(data){
+      rp(process.env.RECIPES_SERVICE_URL + '/v1/formulae/?' + q)
+      .then(function(data) {
         var recipe = JSON.parse(data);
-        var actionChannel = recipe.data[0].action_channel + '-channel';
-        console.log('Queue Being Sent To:', actionChannel);
-        sqs.getQueueUrl({ QueueName: actionChannel }, function(err, data) {
+        var queueName = recipe.data[0].reaction_channel + '-channel';
+        console.log('Queue Being Sent To:', queueName);
+        sqs.getQueueUrl({ QueueName: queueName }, function(err, data) {
           
           // send message code goes here
           if (err) return console.log(err);
@@ -40,8 +35,8 @@ sqs.getQueueUrl({ QueueName: 'trigger' }, function(err, data) {
           // The following example sends a message to the queue created in the previous example.
           var queue = new AWS.SQS({params: {QueueUrl: url}});
           
-          // parse the inner action_fields
-          recipe.data[0].action_fields = JSON.parse(recipe.data[0].action_fields);
+          // parse the inner reaction_fields
+          recipe.data[0].reaction_fields = JSON.parse(recipe.data[0].reaction_fields);
           var body = JSON.stringify(recipe.data[0]);
           console.log('Message being sent:', body);
           queue.sendMessage({ MessageBody: body }, function (err, data) {
@@ -60,6 +55,6 @@ sqs.getQueueUrl({ QueueName: 'trigger' }, function(err, data) {
     },
     sqs: sqs
   });
-  app.on('error', err => console.log(err.message))
+  app.on('error', function(err) { console.log(err.message) });
   app.start();
 });
