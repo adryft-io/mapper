@@ -6,48 +6,55 @@ AWS.config.update({region: process.env.AWS_REGION});
 
 var sqs = new AWS.SQS();
 
-// TODO: factor this out
-// should listen for triggers on the queue
-sqs.getQueueUrl({ QueueName: 'trigger' }, function(err, data) {
+// TODO: Handle multiple reactions for one action
+
+sqs.getQueueUrl({ QueueName: 'action' }, function(err, data) {
   if (err) return console.log(err);
   var app = Consumer.create({
     queueUrl: data.QueueUrl,
     handleMessage: function(data, done) {
       body = JSON.parse(data.Body);
 
-      //a query that will find the recipe given a trigger
+      //a query that will find the formula given a action
       var q = 'action_name=' + body.action_name + '&action_channel=' + body.action_channel + '&user_id=' + body.user_id;
-      console.log('Recieved from trigger:', body);
+      console.log('Recieved from action:', body);
 
       // create a promise request to the controller
-      rp(process.env.RECIPES_SERVICE_URL + '/v1/formulae/?' + q)
+      rp(process.env.FORMULAE_SERVICE_URL + '/v1/formulae/?' + q)
       .then(function(data) {
-        var recipe = JSON.parse(data);
-        console.log('recipes_service_url is: ', process.env.RECIPES_SERVICE_URL)
-        console.log('recipe is: ', recipe);
-        var queueName = recipe.data[0].reaction_channel + '-channel';
-        console.log('Queue Being Sent To:', queueName);
-        sqs.getQueueUrl({ QueueName: queueName }, function(err, data) {
 
-          // send message code goes here
-          if (err) return console.log(err);
-          var url = data.QueueUrl;
+        // parse data from the database:
+        var formula = JSON.parse(data);
 
-          // Sending a message
-          // The following example sends a message to the queue created in the previous example.
-          var queue = new AWS.SQS({params: {QueueUrl: url}});
+        // loop through data array
+        for (var i = 0; i < data.length; i++) {
 
-          // parse the inner reaction_fields
-          recipe.data[0].reaction_fields = JSON.parse(recipe.data[0].reaction_fields);
-          var body = JSON.stringify(recipe.data[0]);
-          console.log('Message being sent:', body);
-          queue.sendMessage({ MessageBody: body }, function (err, data) {
+          // for each element in the array store the queueName of each element
+          var queueName = formula.data[i].reaction_channel + '-channel';
+          console.log('Queue Being Sent To:', queueName);
+          sqs.getQueueUrl({ QueueName: queueName }, function(err, data) {
+            // if there is an error getting queue name
             if (err) return console.log(err);
-            console.log(data);
-          });
-        });
 
-        return recipe;
+            // set url to the queue url retrieved
+            var url = data.QueueUrl;
+
+            // Sending a message
+            var queue = new AWS.SQS({params: {QueueUrl: url}});
+
+            // parse the inner reaction_fields for each element
+            // formula.data[i].reaction_fields = JSON.parse(formula.data[i].reaction_fields);
+            var body = JSON.stringify(formula.data[i]);
+            console.log('Message being sent:', body);
+
+            // send the message to the queue
+            queue.sendMessage({ MessageBody: body }, function (err, data) {
+              if (err) return console.log(err);
+            });
+          });
+        } // closes for loop
+        // get the queue url
+        return formula;
       })
       .catch(function(err){
         console.log('err: ', err);
